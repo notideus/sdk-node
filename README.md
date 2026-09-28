@@ -151,3 +151,13 @@ npm test           # vitest, mocked fetch — no infra needed
 npm run typecheck
 npm run lint
 ```
+
+## Releasing
+
+1. Update `version` in `package.json` and merge to `main`.
+2. Create a GitHub Release with tag `v<version>` — it must match `package.json`, the workflow verifies this and fails otherwise.
+3. The `publish` workflow runs the full test/build gate and publishes to npm with provenance attestations.
+
+The workflow authenticates with the `NPM_TOKEN` repo secret — an npm
+**automation** token with publish access to `@notideus/sdk`. Set it under
+**Settings → Secrets and variables → Actions**.
