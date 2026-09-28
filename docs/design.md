@@ -59,7 +59,7 @@ semantics built in.
 
 ```plain
 sdk-node/
-├── package.json          # exports: ESM (dist/esm) + CJS (dist/cjs) + types; engines >= 18
+├── package.json          # exports: ESM (dist/index.js) + CJS (dist/index.cjs) + types; engines >= 18
 ├── tsconfig.json         # shared TS config (NodeNext, strict)
 ├── tsup.config.ts        # dual ESM/CJS build + d.ts
 ├── src/

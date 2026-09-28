@@ -33,6 +33,14 @@ describe('ApiClient', () => {
     expect(headers.Authorization).toBeUndefined();
   });
 
+  it('omits Authorization for authenticated:false requests even when a key is set', async () => {
+    const { calls } = mockFetch(() => jsonResponse(200, {}));
+    const client = new ApiClient({ apiKey: 'nt_live_secret' });
+    await client.request('GET', '/v1/plans', { authenticated: false });
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+  });
+
   it('serializes query params, dropping undefined values', async () => {
     const { calls } = mockFetch(() => jsonResponse(200, { data: [] }));
     const client = new ApiClient({ apiKey: 'k', baseURL: 'http://localhost:8080' });
