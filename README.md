@@ -156,8 +156,20 @@ npm run lint
 
 1. Update `version` in `package.json` and merge to `main`.
 2. Create a GitHub Release with tag `v<version>` — it must match `package.json`, the workflow verifies this and fails otherwise.
-3. The `publish` workflow runs the full test/build gate and publishes to npm with provenance attestations.
+3. The `publish` workflow runs the full gate (`npm ci`, typecheck, lint, test, build) and **stages** the package on npm via `npm stage publish`, deferring the 2FA proof-of-presence to a maintainer. The stage ID is written to the Actions run summary and to the step's `stage-id` output.
+4. On your machine, review and finish the release:
+   - `npm stage list` — see the staged version;
+   - `npm stage approve <stage-id>` — npm prompts for 2FA and the package goes live;
+   - `npm stage reject <stage-id>` — back it out instead.
+
+Staged packages expire — approve promptly.
+
+**Tradeoff: no npm provenance attestations.** The package is no longer
+published from GitHub's OIDC environment — the actual publish happens from
+the maintainer's machine at approve time — so releases carry no npm
+provenance attestations.
 
 The workflow authenticates with the `NPM_TOKEN` repo secret — an npm
-**automation** token with publish access to `@notideus/sdk`. Set it under
-**Settings → Secrets and variables → Actions**.
+**automation** token able to *stage* `@notideus/sdk` (publishing itself is
+deferred to the maintainer's 2FA approval). Set it under **Settings →
+Secrets and variables → Actions**.
