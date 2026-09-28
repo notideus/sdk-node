@@ -162,7 +162,10 @@ npm run lint
    - `npm stage approve <stage-id>` — npm prompts for 2FA and the package goes live;
    - `npm stage reject <stage-id>` — back it out instead.
 
-Staged packages expire — approve promptly.
+Staged packages expire — approve promptly. Note that `npm stage` requires
+the package to already exist on the registry: for the very first release
+(`0.1.0`), publish once manually (`npm publish`, with your 2FA) before using
+the staged flow.
 
 **Tradeoff: no npm provenance attestations.** The package is no longer
 published from GitHub's OIDC environment — the actual publish happens from
