@@ -23,17 +23,38 @@ export class ApiClient {
   private readonly apiKey?: string;
   private readonly baseURL: string;
   private readonly timeout: number;
+  private readonly maxRetries: number;
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: ClientOptions = {}) {
     this.apiKey = options.apiKey;
     this.baseURL = options.baseURL ?? DEFAULT_BASE_URL;
     this.timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
+    this.maxRetries = options.maxRetries ?? 2;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
   async request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
-    return this.attempt<T>(method, path, options);
+    const idempotent = method !== 'POST' || hasIdempotencyKey(options.body);
+    let attempt = 0;
+    for (;;) {
+      try {
+        return await this.attempt<T>(method, path, options);
+      } catch (err) {
+        if (!idempotent || !isRetriable(err) || attempt >= this.maxRetries) {
+          throw err;
+        }
+        await this.sleep(this.delayMs(err, attempt));
+        attempt += 1;
+      }
+    }
+  }
+
+  private delayMs(err: unknown, attempt: number): number {
+    if (err instanceof NotideusError && err.retryAfter != null) {
+      return err.retryAfter * 1000;
+    }
+    return Math.min(1000 * 2 ** attempt, 8000) + Math.floor(Math.random() * 250);
   }
 
   private async attempt<T>(method: string, path: string, options: RequestOptions): Promise<T> {
@@ -105,4 +126,18 @@ export class ApiClient {
       retryAfter: retryAfterHeader ? Number(retryAfterHeader) : undefined
     });
   }
+}
+
+function hasIdempotencyKey(body: unknown): boolean {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    (body as Record<string, unknown>).idempotency_key != null
+  );
+}
+
+function isRetriable(err: unknown): boolean {
+  if (!(err instanceof NotideusError)) return false;
+  if (err.code === 'network_error' || err.code === 'request_timeout') return true;
+  return err.status === 429 || err.status >= 500;
 }

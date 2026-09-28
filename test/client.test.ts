@@ -89,3 +89,116 @@ describe('ApiClient', () => {
     expect(err.status).toBe(0);
   });
 });
+
+function sequence(...handlers: ((url: string, init: RequestInit) => Response)[]) {
+  let i = 0;
+  return () => handlers[Math.min(i++, handlers.length - 1)]('', {});
+}
+
+describe('retry', () => {
+  it('retries 429 honoring Retry-After', async () => {
+    const slept: number[] = [];
+    const { calls } = mockFetch(
+      sequence(
+        () => jsonResponse(429, { error: { code: 'rate_limited', message: 'slow' } }, { 'Retry-After': '2' }),
+        () => jsonResponse(200, { ok: true })
+      )
+    );
+    const client = new ApiClient({
+      apiKey: 'k',
+      sleep: (ms) => {
+        slept.push(ms);
+        return Promise.resolve();
+      }
+    });
+    const res = await client.request<{ ok: boolean }>('GET', '/v1/contacts');
+    expect(res.ok).toBe(true);
+    expect(calls).toHaveLength(2);
+    expect(slept).toEqual([2000]);
+  });
+
+  it('retries 5xx with exponential backoff and jitter', async () => {
+    const slept: number[] = [];
+    const { calls } = mockFetch(
+      sequence(
+        () => jsonResponse(500, { error: { code: 'internal', message: 'boom' } }),
+        () => jsonResponse(500, { error: { code: 'internal', message: 'boom' } }),
+        () => jsonResponse(200, { ok: true })
+      )
+    );
+    const client = new ApiClient({
+      apiKey: 'k',
+      sleep: (ms) => {
+        slept.push(ms);
+        return Promise.resolve();
+      }
+    });
+    await client.request('GET', '/v1/contacts');
+    expect(calls).toHaveLength(3);
+    expect(slept[0]).toBeGreaterThanOrEqual(1000);
+    expect(slept[0]).toBeLessThan(1500);
+    expect(slept[1]).toBeGreaterThanOrEqual(2000);
+    expect(slept[1]).toBeLessThan(2500);
+  });
+
+  it('retries network errors', async () => {
+    const { calls } = mockFetch(
+      sequence(
+        () => {
+          throw new TypeError('fetch failed');
+        },
+        () => jsonResponse(200, { ok: true })
+      )
+    );
+    const client = new ApiClient({ apiKey: 'k', sleep: () => Promise.resolve() });
+    const res = await client.request<{ ok: boolean }>('GET', '/v1/contacts');
+    expect(res.ok).toBe(true);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('does not retry POST sends without an idempotency key', async () => {
+    const { calls } = mockFetch(() =>
+      jsonResponse(429, { error: { code: 'rate_limited', message: 'slow' } }, { 'Retry-After': '1' })
+    );
+    const client = new ApiClient({ apiKey: 'k', sleep: () => Promise.resolve() });
+    await expect(
+      client.request('POST', '/v1/emails', { body: { subject: 'x' } })
+    ).rejects.toMatchObject({ code: 'rate_limited' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('retries POST sends that carry an idempotency key', async () => {
+    const { calls } = mockFetch(
+      sequence(
+        () => jsonResponse(500, { error: { code: 'internal', message: 'boom' } }),
+        () => jsonResponse(201, { id: 'e1' })
+      )
+    );
+    const client = new ApiClient({ apiKey: 'k', sleep: () => Promise.resolve() });
+    const res = await client.request<{ id: string }>('POST', '/v1/emails', {
+      body: { subject: 'x', idempotency_key: 'req-1' }
+    });
+    expect(res.id).toBe('e1');
+    expect(calls).toHaveLength(2);
+  });
+
+  it('does not retry contact write POSTs (no idempotency support)', async () => {
+    const { calls } = mockFetch(() =>
+      jsonResponse(500, { error: { code: 'internal', message: 'boom' } })
+    );
+    const client = new ApiClient({ apiKey: 'k', sleep: () => Promise.resolve() });
+    await expect(client.request('POST', '/v1/contacts', { body: { email: 'j@x.co' } })).rejects.toMatchObject({
+      code: 'internal'
+    });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('stops after maxRetries and surfaces the last error', async () => {
+    const { calls } = mockFetch(() =>
+      jsonResponse(429, { error: { code: 'rate_limited', message: 'slow' } }, { 'Retry-After': '1' })
+    );
+    const client = new ApiClient({ apiKey: 'k', maxRetries: 1, sleep: () => Promise.resolve() });
+    await expect(client.request('GET', '/v1/contacts')).rejects.toMatchObject({ code: 'rate_limited' });
+    expect(calls).toHaveLength(2);
+  });
+});
