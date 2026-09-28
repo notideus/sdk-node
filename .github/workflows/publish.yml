@@ -29,4 +29,6 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Use npm with trusted publishing support
+        run: npm install --global npm@latest
       - run: npm publish --provenance
