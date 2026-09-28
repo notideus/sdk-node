@@ -1,6 +1,6 @@
 {
   "name": "notideus",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Official Node.js SDK for the Notideus email API",
   "keywords": [
     "notideus",
