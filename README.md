@@ -1,4 +1,4 @@
-# @notideus/sdk
+# notideus
 
 Official Node.js SDK for the [Notideus](https://notideus.io) email API.
 
@@ -8,13 +8,13 @@ and CommonJS builds with TypeScript declarations.
 ## Install
 
 ```bash
-npm install @notideus/sdk
+npm install notideus
 ```
 
 ## Quickstart
 
 ```ts
-import { Notideus } from '@notideus/sdk';
+import { Notideus } from 'notideus';
 
 const notideus = new Notideus(process.env.NOTIDEUS_API_KEY);
 
@@ -101,7 +101,7 @@ const catalog = await notideus.plans.list({ locale: 'fr' });
 Request-level failures throw `NotideusError`:
 
 ```ts
-import { NotideusError } from '@notideus/sdk';
+import { NotideusError } from 'notideus';
 
 try {
   await notideus.emails.send({…});
@@ -156,23 +156,16 @@ npm run lint
 
 1. Update `version` in `package.json` and merge to `main`.
 2. Create a GitHub Release with tag `v<version>` — it must match `package.json`, the workflow verifies this and fails otherwise.
-3. The `publish` workflow runs the full gate (`npm ci`, typecheck, lint, test, build) and **stages** the package on npm via `npm stage publish`, deferring the 2FA proof-of-presence to a maintainer. The stage ID is written to the Actions run summary and to the step's `stage-id` output.
-4. On your machine, review and finish the release:
-   - `npm stage list` — see the staged version;
-   - `npm stage approve <stage-id>` — npm prompts for 2FA and the package goes live;
-   - `npm stage reject <stage-id>` — back it out instead.
+3. The `publish` workflow runs the full gate (`npm ci`, typecheck, lint, test, build) and then **publishes directly to npm via OIDC trusted publishing** — no tokens or secrets. npm exchanges a short-lived OIDC token minted by GitHub Actions, bound to this repo's `publish.yml`.
+4. Publishes carry `--provenance`, which gives the package npm's **Verified Source** checkmark.
 
-Staged packages expire — approve promptly. Note that `npm stage` requires
-the package to already exist on the registry: for the very first release
-(`0.1.0`), publish once manually (`npm publish`, with your 2FA) before using
-the staged flow.
+**One-time setup** (after the first manual publish, since the package must
+exist on the registry): run locally, logged into npm:
 
-**Tradeoff: no npm provenance attestations.** The package is no longer
-published from GitHub's OIDC environment — the actual publish happens from
-the maintainer's machine at approve time — so releases carry no npm
-provenance attestations.
+```bash
+npm trust github notideus --repo notideus/sdk-node --file publish.yml --allow-publish
+```
 
-The workflow authenticates with the `NPM_TOKEN` repo secret — an npm
-**automation** token able to *stage* `@notideus/sdk` (publishing itself is
-deferred to the maintainer's 2FA approval). Set it under **Settings →
-Secrets and variables → Actions**.
+The very first release (`0.1.0`) is published manually once (`npm publish`,
+with your 2FA), then the trust binding is created, then all subsequent
+releases are fully automatic.

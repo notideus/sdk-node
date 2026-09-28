@@ -1,7 +1,19 @@
 {
-  "name": "@notideus/sdk",
+  "name": "notideus",
   "version": "0.1.0",
   "description": "Official Node.js SDK for the Notideus email API",
+  "keywords": [
+    "notideus",
+    "email",
+    "email api",
+    "transactional email",
+    "marketing email",
+    "sdk",
+    "api client",
+    "nodejs",
+    "typescript",
+    "whatsapp"
+  ],
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

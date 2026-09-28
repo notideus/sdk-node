@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,40 +29,4 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - name: Stage package on npm (publish deferred to maintainer 2FA approval)
-        id: stage
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          STAGE_ID=$(npm stage publish --json | node -e '
-            let s = "";
-            process.stdin.on("data", (d) => (s += d));
-            process.stdin.on("end", () => {
-              const start = s.search(/^\{/m);
-              if (start < 0) {
-                console.error("no JSON envelope in npm stage publish output");
-                process.exit(1);
-              }
-              const staged = Object.values(JSON.parse(s.slice(start)))[0];
-              if (!staged || !staged.id) {
-                console.error("no staged package id in npm output");
-                process.exit(1);
-              }
-              console.log(staged.id);
-            });
-          ')
-          if [ -z "$STAGE_ID" ]; then
-            echo "failed to capture the npm stage id"
-            exit 1
-          fi
-          {
-            echo "### npm staged package"
-            echo ""
-            echo "The package was staged on npm. A maintainer must approve it to go live:"
-            echo ""
-            echo "- Stage ID: $STAGE_ID"
-            echo "- Approve: npm stage approve $STAGE_ID (prompts for 2FA)"
-            echo "- Reject: npm stage reject $STAGE_ID"
-            echo "- Inspect: npm stage view $STAGE_ID"
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "stage-id=$STAGE_ID" >> "$GITHUB_OUTPUT"
+      - run: npm publish --provenance

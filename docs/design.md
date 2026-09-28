@@ -1,4 +1,4 @@
-# Design: Notideus Node.js SDK (`@notideus/sdk`)
+# Design: Notideus Node.js SDK (`notideus`)
 
 Date: 2026-09-28
 Status: approved (brainstorming session 2026-09-28)
@@ -19,7 +19,7 @@ semantics built in.
 
 ## Goals
 
-- Ship `@notideus/sdk`: a TypeScript, zero-runtime-dependency Node SDK
+- Ship `notideus`: a TypeScript, zero-runtime-dependency Node SDK
   covering the **full public surface**.
 - Resource-namespace client (`notideus.emails.send(...)`) mirroring the URL
   structure, so the SDK reads as self-documenting against `public-api.md`.
@@ -49,7 +49,7 @@ semantics built in.
 |---|---|
 | Endpoint scope | Full public surface (emails, WhatsApp, contacts, unsubscribe, plans) |
 | Location | New sibling directory `sdk-node/` — fifth independent git repo |
-| npm identity | `@notideus/sdk`, v0.1.0, MIT |
+| npm identity | `notideus`, v0.1.0, MIT |
 | API shape | Client class with resource namespaces (Stripe/Resend style) |
 | Modules | Dual ESM + CJS, type declarations, `exports` map |
 | HTTP | Global `fetch` (Node >= 18), zero runtime dependencies |
