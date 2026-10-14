@@ -59,12 +59,12 @@ export class InboundMessagesResource {
     return res.message;
   }
 
-  async raw(id: string): Promise<BinaryResult> {
-    return this.client.requestBinary(`${messagePath(id)}/raw`);
+  async raw(id: string, options: { signal?: AbortSignal } = {}): Promise<BinaryResult> {
+    return this.client.requestBinary(`${messagePath(id)}/raw`, options);
   }
 
-  async attachment(messageId: string, index: number): Promise<BinaryResult> {
-    return this.client.requestBinary(`${messagePath(messageId)}/attachments/${index}`);
+  async attachment(messageId: string, index: number, options: { signal?: AbortSignal } = {}): Promise<BinaryResult> {
+    return this.client.requestBinary(`${messagePath(messageId)}/attachments/${index}`, options);
   }
 }
 
