@@ -19,6 +19,12 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+export interface BinaryResult {
+  data: Uint8Array;
+  contentType: string;
+  filename: string | null;
+}
+
 export class ApiClient {
   private readonly apiKey?: string;
   private readonly baseURL: string;
@@ -48,6 +54,30 @@ export class ApiClient {
         attempt += 1;
       }
     }
+  }
+
+  // requestBinary downloads a binary endpoint (raw MIME, attachments). Auth
+  // headers are attached like request(); non-2xx responses raise NotideusError
+  // with the standard envelope. No retries — callers can re-invoke.
+  async requestBinary(path: string): Promise<BinaryResult> {
+    const headers: Record<string, string> = {
+      'User-Agent': `notideus-node/${VERSION}`
+    };
+    if (this.apiKey) headers.Authorization = `Bearer ${this.apiKey}`;
+    let res: Response;
+    try {
+      res = await fetch(new URL(path, this.baseURL), { headers });
+    } catch {
+      throw new NotideusError({ code: 'network_error', message: 'Network error', status: 0 });
+    }
+    if (!res.ok) throw await this.toError(res);
+    const disposition = res.headers.get('content-disposition') ?? '';
+    const match = CONTENT_DISPOSITION_FILENAME.exec(disposition);
+    return {
+      data: new Uint8Array(await res.arrayBuffer()),
+      contentType: res.headers.get('content-type') ?? 'application/octet-stream',
+      filename: match ? match[1] : null
+    };
   }
 
   private delayMs(err: unknown, attempt: number): number {
@@ -127,6 +157,8 @@ export class ApiClient {
     });
   }
 }
+
+const CONTENT_DISPOSITION_FILENAME = /filename="?([^";]+)"?/;
 
 function hasIdempotencyKey(body: unknown): boolean {
   return (

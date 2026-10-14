@@ -1,13 +1,14 @@
 import { ApiClient, type ClientOptions } from './client.js';
 import { ContactsResource } from './resources/contacts.js';
 import { EmailsResource } from './resources/emails.js';
+import { InboundResource } from './resources/inbound.js';
 import { PlansResource } from './resources/plans.js';
 import { UnsubscribeResource } from './resources/unsubscribe.js';
 import { WebhooksResource } from './resources/webhooks.js';
 import { WhatsAppResource } from './resources/whatsapp.js';
 
 export { NotideusError } from './errors.js';
-export type { ClientOptions } from './client.js';
+export type { BinaryResult, ClientOptions } from './client.js';
 export type { BatchItemError, BatchItemResult } from './types/common.js';
 export type {
   BulkContactInput,
@@ -19,6 +20,18 @@ export type {
   UpdateContactParams
 } from './types/contact.js';
 export type { Email, SendEmailParams } from './types/email.js';
+export type {
+  CreateInboundRouteParams,
+  InboundAttachment,
+  InboundMessage,
+  InboundMessageStatus,
+  InboundRoute,
+  InboundRouteStatus,
+  ListInboundMessagesParams,
+  ListInboundMessagesResponse,
+  ListInboundRoutesResponse,
+  UpdateInboundRouteParams
+} from './types/inbound.js';
 export type {
   ContactsTier,
   FreeAllowances,
@@ -54,6 +67,7 @@ export class Notideus {
   readonly unsubscribe: UnsubscribeResource;
   readonly plans: PlansResource;
   readonly webhooks: WebhooksResource;
+  readonly inbound: InboundResource;
 
   constructor(apiKey?: string, options: Omit<ClientOptions, 'apiKey'> = {}) {
     this.client = new ApiClient({ ...options, apiKey });
@@ -63,5 +77,6 @@ export class Notideus {
     this.unsubscribe = new UnsubscribeResource(this.client);
     this.plans = new PlansResource(this.client);
     this.webhooks = new WebhooksResource(this.client);
+    this.inbound = new InboundResource(this.client);
   }
 }
