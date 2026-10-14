@@ -119,6 +119,19 @@ describe('webhooks', () => {
     expect(JSON.parse(calls[0].init.body as string)).toEqual({ event: 'email.delivered' });
   });
 
+  it('rotates the signing secret and returns the endpoint with the new secret', async () => {
+    const { calls } = mockFetch(() =>
+      jsonResponse(200, { endpoint: endpointFixture, secret: 'whsec_new_secret' })
+    );
+    const notideus = new Notideus('k');
+    const created = await notideus.webhooks.rotateSecret('5c1e');
+    expect(created.endpoint.id).toBe('5c1e');
+    expect(created.secret).toBe('whsec_new_secret');
+    expect(calls[0].init.method).toBe('POST');
+    expect(calls[0].url).toBe('https://api.notideus.io/v1/webhooks/5c1e/rotate-secret');
+    expect(JSON.parse(calls[0].init.body as string)).toEqual({});
+  });
+
   it('lists event descriptors and unwraps data', async () => {
     const { calls } = mockFetch(() =>
       jsonResponse(200, { data: [{ type: 'email.delivered', description: '…', sample: { id: 'em_123' } }] })

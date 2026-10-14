@@ -54,6 +54,12 @@ export class WebhooksResource {
     return res.delivery;
   }
 
+  // rotateSecret replaces the endpoint's signing secret; the new secret is
+  // returned exactly once. The old secret stops working immediately.
+  async rotateSecret(id: string): Promise<WebhookCreated> {
+    return this.client.request<WebhookCreated>('POST', `${webhookPath(id)}/rotate-secret`, { body: {} });
+  }
+
   async events(): Promise<WebhookEventDescriptor[]> {
     const res = await this.client.request<{ data: WebhookEventDescriptor[] }>('GET', '/v1/webhooks/meta/events');
     return res.data;
