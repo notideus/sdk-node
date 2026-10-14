@@ -81,6 +81,26 @@ if (page.next_cursor) {
 }
 ```
 
+### Webhooks
+
+```ts
+const created = await notideus.webhooks.create({ name: 'Production API', url: 'https://example.com/hook', events: ['email.delivered'] });
+console.log(created.secret); // whsec_… — shown once
+await notideus.webhooks.update(created.endpoint.id, { name: 'Production API', url: 'https://example.com/hook', events: ['email.delivered'], status: 'disabled' });
+const log = await notideus.webhooks.deliveries.list({ endpoint_id: created.endpoint.id });
+await notideus.webhooks.deliveries.redeliver(log.data[0].id);
+const events = await notideus.webhooks.events();
+```
+
+### Inbound email
+
+```ts
+const routes = await notideus.inbound.routes.list(); // { data, meta }
+await notideus.inbound.routes.create({ domain_id, recipient: 'support', store: true });
+const inbox = await notideus.inbound.messages.list({ q: 'billing' });
+const raw = await notideus.inbound.messages.raw(inbox.data[0].id); // { data, contentType, filename }
+```
+
 ### Hosted unsubscribe (token-based, unauthenticated)
 
 ```ts

@@ -98,6 +98,62 @@ describe('ApiClient', () => {
   });
 });
 
+describe('requestBinary', () => {
+  it('maps a client timeout to a request_timeout NotideusError', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted.', 'AbortError'));
+          });
+        });
+      })
+    );
+    const client = new ApiClient({ apiKey: 'k', timeout: 10 });
+    const err: NotideusError = (await client
+      .requestBinary('/v1/inbound/messages/im_1/raw')
+      .catch((e: unknown) => e)) as NotideusError;
+    expect(err).toBeInstanceOf(NotideusError);
+    expect(err.code).toBe('request_timeout');
+    expect(err.status).toBe(0);
+  });
+
+  it('propagates a caller-provided abort signal', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted.', 'AbortError'));
+          });
+        });
+      })
+    );
+    const controller = new AbortController();
+    const client = new ApiClient({ apiKey: 'k' });
+    const promise = client.requestBinary('/v1/inbound/messages/im_1/raw', { signal: controller.signal });
+    controller.abort();
+    const err: unknown = await promise.catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(DOMException);
+    expect((err as DOMException).name).toBe('AbortError');
+  });
+
+  it('preserves the underlying error message on network failure', async () => {
+    mockFetch(() => {
+      throw new TypeError('fetch failed');
+    });
+    const client = new ApiClient({ apiKey: 'k' });
+    const err: NotideusError = (await client
+      .requestBinary('/v1/inbound/messages/im_1/raw')
+      .catch((e: unknown) => e)) as NotideusError;
+    expect(err).toBeInstanceOf(NotideusError);
+    expect(err.code).toBe('network_error');
+    expect(err.message).toBe('fetch failed');
+    expect(err.status).toBe(0);
+  });
+});
+
 function sequence(...handlers: ((url: string, init: RequestInit) => Response)[]) {
   let i = 0;
   return () => handlers[Math.min(i++, handlers.length - 1)]('', {});

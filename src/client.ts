@@ -19,6 +19,12 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+export interface BinaryResult {
+  data: Uint8Array;
+  contentType: string;
+  filename: string | null;
+}
+
 export class ApiClient {
   private readonly apiKey?: string;
   private readonly baseURL: string;
@@ -47,6 +53,47 @@ export class ApiClient {
         await this.sleep(this.delayMs(err, attempt));
         attempt += 1;
       }
+    }
+  }
+
+  // requestBinary downloads a binary endpoint (raw MIME, attachments). Auth
+  // headers are attached like request(); non-2xx responses raise NotideusError
+  // with the standard envelope. No retries — callers can re-invoke.
+  async requestBinary(path: string, options: { signal?: AbortSignal } = {}): Promise<BinaryResult> {
+    const headers: Record<string, string> = {
+      'User-Agent': `notideus-node/${VERSION}`
+    };
+    if (this.apiKey) headers.Authorization = `Bearer ${this.apiKey}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeout);
+    const onCallerAbort = () => controller.abort();
+    if (options.signal) {
+      if (options.signal.aborted) controller.abort();
+      else options.signal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+
+    try {
+      const res = await fetch(new URL(path, this.baseURL), { headers, signal: controller.signal });
+      if (!res.ok) throw await this.toError(res);
+      const disposition = res.headers.get('content-disposition') ?? '';
+      const match = CONTENT_DISPOSITION_FILENAME.exec(disposition);
+      return {
+        data: new Uint8Array(await res.arrayBuffer()),
+        contentType: res.headers.get('content-type') ?? 'application/octet-stream',
+        filename: match ? match[1] : null
+      };
+    } catch (err) {
+      if (err instanceof NotideusError) throw err;
+      if (options.signal?.aborted) throw err;
+      throw new NotideusError({
+        code: controller.signal.aborted ? 'request_timeout' : 'network_error',
+        message: err instanceof Error ? err.message : String(err),
+        status: 0
+      });
+    } finally {
+      clearTimeout(timer);
+      options.signal?.removeEventListener('abort', onCallerAbort);
     }
   }
 
@@ -127,6 +174,8 @@ export class ApiClient {
     });
   }
 }
+
+const CONTENT_DISPOSITION_FILENAME = /filename="?([^";]+)"?/;
 
 function hasIdempotencyKey(body: unknown): boolean {
   return (
