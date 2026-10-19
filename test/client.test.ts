@@ -66,6 +66,20 @@ describe('ApiClient', () => {
     expect(err.message).toBe('no verified domain matches the from address');
   });
 
+  it('parses the admin reason on account_suspended', async () => {
+    mockFetch(() =>
+      jsonResponse(403, {
+        error: { code: 'account_suspended', message: 'this account is suspended', reason: 'spam complaints' }
+      })
+    );
+    const client = new ApiClient({ apiKey: 'k', maxRetries: 0 });
+    const err: NotideusError = (await client
+      .request('GET', '/v1/contacts')
+      .catch((e: unknown) => e)) as NotideusError;
+    expect(err.code).toBe('account_suspended');
+    expect(err.reason).toBe('spam complaints');
+  });
+
   it('parses Retry-After on 429', async () => {
     mockFetch(() =>
       jsonResponse(429, { error: { code: 'rate_limited', message: 'slow down' } }, { 'Retry-After': '7' })

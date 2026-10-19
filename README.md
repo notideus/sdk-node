@@ -130,6 +130,9 @@ try {
   if (err instanceof NotideusError && err.code === 'rate_limited') {
     // err.retryAfter = seconds to wait
   }
+  if (err instanceof NotideusError && err.code === 'account_suspended') {
+    // err.reason = optional admin note explaining the suspension
+  }
 }
 ```
 

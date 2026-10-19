@@ -22,4 +22,16 @@ describe('NotideusError', () => {
     const err = new NotideusError({ code: 'unauthorized', message: 'bad key', status: 401 });
     expect(err.retryAfter).toBeUndefined();
   });
+
+  it('carries the optional admin reason', () => {
+    const err = new NotideusError({
+      code: 'account_suspended',
+      message: 'this account is suspended',
+      status: 403,
+      reason: 'spam complaints'
+    });
+    expect(err.reason).toBe('spam complaints');
+    const noReason = new NotideusError({ code: 'unauthorized', message: 'bad key', status: 401 });
+    expect(noReason.reason).toBeUndefined();
+  });
 });

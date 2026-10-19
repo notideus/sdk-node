@@ -158,10 +158,12 @@ export class ApiClient {
   private async toError(response: Response): Promise<NotideusError> {
     let code = 'unknown_error';
     let message = response.statusText || `HTTP ${response.status}`;
+    let reason: string | undefined;
     try {
-      const parsed = (await response.json()) as { error?: { code?: string; message?: string } };
+      const parsed = (await response.json()) as { error?: { code?: string; message?: string; reason?: string } };
       if (parsed.error?.code) code = parsed.error.code;
       if (parsed.error?.message) message = parsed.error.message;
+      if (typeof parsed.error?.reason === 'string') reason = parsed.error.reason;
     } catch {
       // non-JSON error body — keep the defaults
     }
@@ -170,7 +172,8 @@ export class ApiClient {
       code,
       message,
       status: response.status,
-      retryAfter: retryAfterHeader ? Number(retryAfterHeader) : undefined
+      retryAfter: retryAfterHeader ? Number(retryAfterHeader) : undefined,
+      reason
     });
   }
 }
