@@ -10,6 +10,10 @@ export interface SendEmailParams {
   variables?: Record<string, string>;
   tags?: string[];
   idempotency_key?: string;
+  /** Opt into open tracking (1px pixel injected at send time). Default false. */
+  track_opens?: boolean;
+  /** Opt into click tracking (links rewritten through the redirect). Default false. */
+  track_clicks?: boolean;
 }
 
 export interface Email {
