@@ -1,6 +1,7 @@
 import { ApiClient, type ClientOptions } from './client.js';
 import { ContactsResource } from './resources/contacts.js';
 import { EmailsResource } from './resources/emails.js';
+import { EventsResource } from './resources/events.js';
 import { InboundResource } from './resources/inbound.js';
 import { PlansResource } from './resources/plans.js';
 import { UnsubscribeResource } from './resources/unsubscribe.js';
@@ -20,6 +21,7 @@ export type {
   UpdateContactParams
 } from './types/contact.js';
 export type { Email, SendEmailParams } from './types/email.js';
+export type { AutomationEvent, SendEventParams, SendEventResult } from './types/event.js';
 export type {
   CreateInboundRouteParams,
   InboundAttachment,
@@ -27,6 +29,12 @@ export type {
   InboundMessageStatus,
   InboundRoute,
   InboundRouteStatus,
+  InboxFolder,
+  InboxFolderName,
+  InboxFolderFilter,
+  InboxCounts,
+  InboxFolderOverview,
+  UpdateInboundMessageParams,
   ListInboundMessagesParams,
   ListInboundMessagesResponse,
   ListInboundRoutesResponse,
@@ -62,6 +70,7 @@ export type {
 export class Notideus {
   private readonly client: ApiClient;
   readonly emails: EmailsResource;
+  readonly events: EventsResource;
   readonly contacts: ContactsResource;
   readonly whatsapp: WhatsAppResource;
   readonly unsubscribe: UnsubscribeResource;
@@ -72,6 +81,7 @@ export class Notideus {
   constructor(apiKey?: string, options: Omit<ClientOptions, 'apiKey'> = {}) {
     this.client = new ApiClient({ ...options, apiKey });
     this.emails = new EmailsResource(this.client);
+    this.events = new EventsResource(this.client);
     this.contacts = new ContactsResource(this.client);
     this.whatsapp = new WhatsAppResource(this.client);
     this.unsubscribe = new UnsubscribeResource(this.client);

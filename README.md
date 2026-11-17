@@ -55,6 +55,22 @@ await notideus.emails.send({ from, to, subject, html?, text?, template_id?, vari
 await notideus.emails.sendBatch([{ /* same shape */ }, …]); // up to 100
 ```
 
+### Automation events
+
+Send a custom event to start every active automation that matches its name. Provide exactly one recipient: an `email` address or an existing `contact_id`. The `202 Accepted` response confirms asynchronous dispatch, not email delivery.
+
+```ts
+const result = await notideus.events.send({
+  event: 'user.created',
+  email: 'ada@example.com', // or: contact_id: 'contact-uuid'
+  payload: { first_name: 'Ada', plan: 'Pro' },
+  idempotency_key: 'signup-42'
+});
+console.log(result.created, result.event.id);
+```
+
+Top-level payload fields fill matching template variables (for example `{{first_name}}`); `{{email}}` and `{{event_name}}` are built in. Replaying an `idempotency_key` returns the same event with `created: false` and never creates a duplicate run.
+
 ### WhatsApp messages
 
 ```ts

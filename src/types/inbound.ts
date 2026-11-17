@@ -57,11 +57,52 @@ export interface InboundMessage {
   status: InboundMessageStatus;
   error: string | null;
   received_at: string;
+  read_at: string | null;
+  starred: boolean;
+  folder: 'inbox' | 'archive' | 'trash';
+  folder_id: string | null;
+}
+
+export type InboxFolderName = 'inbox' | 'archive' | 'trash';
+export type InboxFolderFilter = InboxFolderName | 'starred' | 'all';
+
+export interface InboxFolder {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InboxCounts {
+  inbox: number;
+  unread: number;
+  starred: number;
+  archive: number;
+  trash: number;
+  all: number;
+}
+
+export interface InboxFolderOverview {
+  data: InboxFolder[];
+  counts: InboxCounts;
+  route_unread: Record<string, number>;
+}
+
+export interface UpdateInboundMessageParams {
+  read?: boolean;
+  starred?: boolean;
+  folder?: InboxFolderName;
+  folder_id?: string;
 }
 
 export interface ListInboundMessagesParams {
   q?: string;
   route_id?: string;
+  folder?: InboxFolderFilter;
+  folder_id?: string;
+  unread?: boolean;
+  attachments?: boolean;
+  sort?: 'newest' | 'oldest';
   cursor?: string;
   limit?: number;
 }

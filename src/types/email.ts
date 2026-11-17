@@ -1,6 +1,8 @@
 export interface SendEmailParams {
   from: string;
   to: string[];
+  cc?: string[];
+  bcc?: string[];
   subject: string;
   html?: string;
   text?: string;
@@ -23,6 +25,8 @@ export interface Email {
   template_id: string | null;
   from_address: string;
   to_emails: string[];
+  cc_emails: string[];
+  bcc_emails: string[];
   subject: string;
   html: string;
   size_kb: number;

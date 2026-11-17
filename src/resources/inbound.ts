@@ -3,6 +3,9 @@ import type {
   CreateInboundRouteParams,
   InboundMessage,
   InboundRoute,
+  InboxFolder,
+  InboxFolderOverview,
+  UpdateInboundMessageParams,
   ListInboundMessagesParams,
   ListInboundMessagesResponse,
   ListInboundRoutesResponse,
@@ -48,9 +51,19 @@ export class InboundMessagesResource {
   constructor(private readonly client: ApiClient) {}
 
   async list(params: ListInboundMessagesParams = {}): Promise<ListInboundMessagesResponse> {
-    const { q, route_id, cursor, limit } = params;
+    const { q, route_id, folder, folder_id, unread, attachments, sort, cursor, limit } = params;
     return this.client.request<ListInboundMessagesResponse>('GET', '/v1/inbound/messages', {
-      query: { q, route_id, cursor, limit }
+      query: {
+        q,
+        route_id,
+        folder,
+        folder_id,
+        unread: unread === undefined ? undefined : String(unread),
+        attachments: attachments === undefined ? undefined : String(attachments),
+        sort,
+        cursor,
+        limit
+      }
     });
   }
 
@@ -66,14 +79,51 @@ export class InboundMessagesResource {
   async attachment(messageId: string, index: number, options: { signal?: AbortSignal } = {}): Promise<BinaryResult> {
     return this.client.requestBinary(`${messagePath(messageId)}/attachments/${index}`, options);
   }
+
+  async update(id: string, params: UpdateInboundMessageParams): Promise<InboundMessage> {
+    const res = await this.client.request<{ message: InboundMessage }>('PATCH', messagePath(id), { body: params });
+    return res.message;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.client.request<void>('DELETE', messagePath(id));
+  }
+}
+
+function folderPath(id: string): string {
+  return `/v1/inbound/folders/${encodeURIComponent(id)}`;
+}
+
+export class InboundFoldersResource {
+  constructor(private readonly client: ApiClient) {}
+
+  async list(): Promise<InboxFolderOverview> {
+    return this.client.request<InboxFolderOverview>('GET', '/v1/inbound/folders');
+  }
+
+  async create(name: string): Promise<InboxFolder> {
+    const res = await this.client.request<{ folder: InboxFolder }>('POST', '/v1/inbound/folders', { body: { name } });
+    return res.folder;
+  }
+
+  async update(id: string, name: string): Promise<InboxFolder> {
+    const res = await this.client.request<{ folder: InboxFolder }>('PATCH', folderPath(id), { body: { name } });
+    return res.folder;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.client.request<void>('DELETE', folderPath(id));
+  }
 }
 
 export class InboundResource {
   readonly routes: InboundRoutesResource;
   readonly messages: InboundMessagesResource;
+  readonly folders: InboundFoldersResource;
 
   constructor(client: ApiClient) {
     this.routes = new InboundRoutesResource(client);
     this.messages = new InboundMessagesResource(client);
+    this.folders = new InboundFoldersResource(client);
   }
 }

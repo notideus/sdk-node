@@ -15,6 +15,8 @@ describe('emails', () => {
     const email = await notideus.emails.send({
       from: 'Acme Inc <noreply@acme.com>',
       to: ['jane@example.com'],
+      cc: ['copy@example.com'],
+      bcc: ['archive@example.com'],
       subject: 'Welcome',
       html: '<p>Hi {{name}}</p>',
       variables: { name: 'Jane' },
@@ -28,6 +30,8 @@ describe('emails', () => {
     expect(body).toEqual({
       from: 'Acme Inc <noreply@acme.com>',
       to: ['jane@example.com'],
+      cc: ['copy@example.com'],
+      bcc: ['archive@example.com'],
       subject: 'Welcome',
       html: '<p>Hi {{name}}</p>',
       variables: { name: 'Jane' },

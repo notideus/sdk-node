@@ -33,7 +33,11 @@ const messageFixture = {
   size_kb: 45,
   status: 'received',
   error: null,
-  received_at: '2026-09-10T12:00:00Z'
+  received_at: '2026-09-10T12:00:00Z',
+  read_at: null,
+  starred: false,
+  folder: 'inbox',
+  folder_id: null
 };
 
 describe('inbound routes', () => {
@@ -196,5 +200,61 @@ describe('inbound messages', () => {
     expect(err.code).toBe('not_found');
     expect(err.status).toBe(404);
     expect(err.message).toBe('no such message');
+  });
+});
+
+
+describe('mailbox state and folders', () => {
+  it('serializes every message list filter', async () => {
+    const { calls } = mockFetch(() => jsonResponse(200, { data: [], next_cursor: '' }));
+    const notideus = new Notideus('k');
+    await notideus.inbound.messages.list({
+      folder: 'starred',
+      folder_id: 'folder_1',
+      unread: true,
+      attachments: true,
+      sort: 'oldest'
+    });
+    expect(calls[0].url).toBe('https://api.notideus.io/v1/inbound/messages?folder=starred&folder_id=folder_1&unread=true&attachments=true&sort=oldest');
+  });
+
+  it('updates and permanently deletes a message', async () => {
+    const { calls } = mockFetch(() => jsonResponse(200, { message: messageFixture }));
+    const notideus = new Notideus('k');
+    await notideus.inbound.messages.update('im_3f9a', { read: true, starred: true, folder: 'archive' });
+    expect(calls[0].init.method).toBe('PATCH');
+    expect(calls[0].url).toBe('https://api.notideus.io/v1/inbound/messages/im_3f9a');
+    expect(JSON.parse(calls[0].init.body as string)).toEqual({ read: true, starred: true, folder: 'archive' });
+  });
+
+  it('deletes a message on 204', async () => {
+    const { calls } = mockFetch(() => new Response(null, { status: 204 }));
+    const notideus = new Notideus('k');
+    await expect(notideus.inbound.messages.delete('im_3f9a')).resolves.toBeUndefined();
+    expect(calls[0].init.method).toBe('DELETE');
+  });
+
+  it('creates, renames, lists, and deletes custom folders', async () => {
+    const folder = { id: 'folder_1', name: 'Follow up', created_at: '2026-11-17T10:00:00Z', updated_at: '2026-11-17T10:00:00Z' };
+    const overviewBody = {
+      data: [folder],
+      counts: { inbox: 1, unread: 1, starred: 0, archive: 0, trash: 0, all: 1 },
+      route_unread: { rt_7a2c: 1 }
+    };
+    const { calls } = mockFetch((_url, init) => {
+      if (init.method === 'POST' || init.method === 'PATCH') return jsonResponse(init.method === 'POST' ? 201 : 200, { folder });
+      if (init.method === 'DELETE') return new Response(null, { status: 204 });
+      return jsonResponse(200, overviewBody);
+    });
+    const notideus = new Notideus('k');
+    await notideus.inbound.folders.create('Follow up');
+    await notideus.inbound.folders.update('folder_1', 'Later');
+    const overview = await notideus.inbound.folders.list();
+    await notideus.inbound.folders.delete('folder_1');
+    expect(overview.counts.unread).toBe(1);
+    expect(overview.route_unread.rt_7a2c).toBe(1);
+    expect(calls.map(call => call.init.method)).toEqual(['POST', 'PATCH', 'GET', 'DELETE']);
+    expect(calls[1].url).toBe('https://api.notideus.io/v1/inbound/folders/folder_1');
+    expect(JSON.parse(calls[1].init.body as string)).toEqual({ name: 'Later' });
   });
 });
