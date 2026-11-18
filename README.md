@@ -71,15 +71,6 @@ console.log(result.created, result.event.id);
 
 Top-level payload fields fill matching template variables (for example `{{first_name}}`); `{{email}}` and `{{event_name}}` are built in. Replaying an `idempotency_key` returns the same event with `created: false` and never creates a duplicate run.
 
-### WhatsApp messages
-
-```ts
-await notideus.whatsapp.messages.send({ template_id, to: ['+33612345678'], parameters: { 'body:1': 'Jane' } });
-await notideus.whatsapp.messages.sendBatch([…]);
-```
-
-`send` returns one entry per recipient: `[{ id, to, status }]`.
-
 ### Contacts
 
 ```ts

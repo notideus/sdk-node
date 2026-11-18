@@ -6,7 +6,6 @@ import { InboundResource } from './resources/inbound.js';
 import { PlansResource } from './resources/plans.js';
 import { UnsubscribeResource } from './resources/unsubscribe.js';
 import { WebhooksResource } from './resources/webhooks.js';
-import { WhatsAppResource } from './resources/whatsapp.js';
 
 export { NotideusError } from './errors.js';
 export type { BinaryResult, ClientOptions } from './client.js';
@@ -48,7 +47,6 @@ export type {
   PlanLocale,
   PlanTier
 } from './types/plans.js';
-export type { SendWhatsAppMessageParams, WhatsAppMessage } from './types/whatsapp.js';
 export type { UnsubscribeInfo, UnsubscribeTopic } from './types/unsubscribe.js';
 export type {
   CreateWebhookParams,
@@ -72,7 +70,6 @@ export class Notideus {
   readonly emails: EmailsResource;
   readonly events: EventsResource;
   readonly contacts: ContactsResource;
-  readonly whatsapp: WhatsAppResource;
   readonly unsubscribe: UnsubscribeResource;
   readonly plans: PlansResource;
   readonly webhooks: WebhooksResource;
@@ -83,7 +80,6 @@ export class Notideus {
     this.emails = new EmailsResource(this.client);
     this.events = new EventsResource(this.client);
     this.contacts = new ContactsResource(this.client);
-    this.whatsapp = new WhatsAppResource(this.client);
     this.unsubscribe = new UnsubscribeResource(this.client);
     this.plans = new PlansResource(this.client);
     this.webhooks = new WebhooksResource(this.client);

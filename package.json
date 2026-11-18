@@ -1,6 +1,6 @@
 {
   "name": "notideus",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Official Node.js SDK for the Notideus email API",
   "keywords": [
     "notideus",
@@ -11,8 +11,7 @@
     "sdk",
     "api client",
     "nodejs",
-    "typescript",
-    "whatsapp"
+    "typescript"
   ],
   "license": "MIT",
   "repository": "github:notideus/sdk-node",
