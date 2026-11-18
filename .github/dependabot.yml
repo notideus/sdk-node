@@ -4,6 +4,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # TypeScript majors require a deliberate toolchain migration
+      # (typescript-eslint and vitest peer ranges lag behind); the SDK
+      # stays on the 5.x line until that work is scheduled.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
